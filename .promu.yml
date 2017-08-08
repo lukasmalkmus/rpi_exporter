@@ -14,5 +14,5 @@ tarball:
         - NOTICE
 crossbuild:
     platforms:
-        #- linux/arm
+        - linux/arm
         - linux/arm64

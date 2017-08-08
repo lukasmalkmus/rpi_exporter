@@ -142,7 +142,7 @@ func (e *Exporter) scrape() (err error) {
 
 	// Get temperature string from /sys/class/thermal/thermal_zone*/temp and
 	// convert it to 64bit float value.
-	b, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone*/temp")
+	b, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
 	if err != nil {
 		return err
 	}
