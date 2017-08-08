@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -146,7 +147,7 @@ func (e *Exporter) scrape() (err error) {
 	if err != nil {
 		return err
 	}
-	temp, err := strconv.ParseFloat(string(b), 64)
+	temp, err := strconv.ParseFloat(string(bytes.TrimSpace(b)), 64)
 	if err != nil {
 		return err
 	}
