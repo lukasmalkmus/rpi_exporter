@@ -55,7 +55,6 @@ Distributed under Apache License (`Apache License, Version 2.0`).
 
 See [LICENSE](LICENSE) for more information.
 
-FIX LINKS!
 
 [travis]: https://travis-ci.org/lukasmalkmus/rpi_exporter
 [travis_badge]: https://travis-ci.org/lukasmalkmus/rpi_exporter.svg
