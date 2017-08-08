@@ -87,7 +87,7 @@ func New() *Exporter {
 			Namespace: namespace,
 			Subsystem: "cpu",
 			Name:      "temperature_celsius",
-			Help:      "CPU temperatue in degrees celsius.",
+			Help:      "CPU temperature in degrees celsius.",
 		}),
 	}
 }
@@ -124,7 +124,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 // scrape is where the magic happens. FIXME: Better description.
 func (e *Exporter) scrape() (err error) {
-	// Evaluate if the scrape was successfull or not.
+	// Evaluate if the scrape was successful or not.
 	defer func() {
 		if err == nil {
 			e.up.Set(1)
