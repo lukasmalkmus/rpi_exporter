@@ -1,0 +1,17 @@
+language: go
+
+sudo: false
+
+go:
+  - 1.8
+
+before_install:
+  - go get -u -d -v github.com/Masterminds/glide
+  - cd $GOPATH/src/github.com/Masterminds/glide && go install
+  - cd $HOME/gopath/src/github.com/lukasmalkmus/rpi_exporter
+
+install:
+  - glide install
+
+script:
+  - make test
