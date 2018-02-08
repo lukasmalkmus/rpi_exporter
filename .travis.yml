@@ -1,17 +1,15 @@
 language: go
 
-sudo: false
-
 go:
-  - 1.8
+  - 1.x
+  - master
 
 before_install:
-  - go get -u -d -v github.com/Masterminds/glide
-  - cd $GOPATH/src/github.com/Masterminds/glide && go install
-  - cd $HOME/gopath/src/github.com/lukasmalkmus/rpi_exporter
+  - go get github.com/golang/dep/cmd/dep
+  - go get github.com/mattn/goveralls
 
 install:
-  - glide install
+  - dep ensure -vendor-only
 
 script:
-  - make test
+  - $GOPATH/bin/goveralls -service=travis-ci
