@@ -54,6 +54,11 @@ Help on flags:
 ./rpi_exporter --help
 ```
 
+#### Docker images
+
+Thanks to [Carlos Eduardo](https://github.com/carlosedp) docker images are now
+available for this exporter! Checkout [DockerHub](https://hub.docker.com/r/carlosedp/arm_exporter)!
+
 ### Contributing
 
 Feel free to submit PRs or to fill Issues. Every kind of help is appreciated.
@@ -77,4 +82,4 @@ See [LICENSE](LICENSE) for more information.
 [license]: https://opensource.org/licenses/Apache-2.0
 [license_badge]: https://img.shields.io/badge/license-Apache-blue.svg
 [docker]: https://hub.docker.com/r/carlosedp/arm_exporter
-[docker_badge]: https://dockerbuildbadges.quelltext.eu/status.svg?organization=carlosedp&repository=arm_exporter
+[docker_badge]: https://img.shields.io/docker/pulls/carlosedp/arm_exporter.svg
