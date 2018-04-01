@@ -1,8 +1,10 @@
 repository:
     path: github.com/lukasmalkmus/rpi_exporter
 build:
-    flags: -a -tags netgo
+    flags: -buildmode=exe -tags netgo -installsuffix cgo
     ldflags: |
+        -s
+        -w
         -X {{repoPath}}/vendor/github.com/prometheus/common/version.Version={{.Version}}
         -X {{repoPath}}/vendor/github.com/prometheus/common/version.Revision={{.Revision}}
         -X {{repoPath}}/vendor/github.com/prometheus/common/version.Branch={{.Branch}}
