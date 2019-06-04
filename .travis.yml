@@ -1,12 +1,8 @@
 language: go
 
 go:
-  - 1.x
-  - master
-
-# before_install:
-#   - go get github.com/mattn/goveralls
+  - 1.12.x
 
 script:
-  # - $GOPATH/bin/goveralls -service=travis-ci
-  - go build
+  - make check_license style unused test lint
+  - git diff --exit-code

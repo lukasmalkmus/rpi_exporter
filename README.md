@@ -3,7 +3,6 @@
 > A Raspberry Pi CPU temperature exporter. - by **[Lukas Malkmus]**
 
 [![Travis Status][travis_badge]][travis]
-[![Coverage Status][coverage_badge]][coverage]
 [![Go Report][report_badge]][report]
 [![Latest Release][release_badge]][release]
 [![License][license_badge]][license]
@@ -32,14 +31,12 @@ the [release page][release].
 
 ##### Building from source
 
-This project uses [dep] for vendoring.
+This project uses [go mod] for vendoring.
 
 ```bash
-mkdir -p $GOPATH/src/github.com/lukasmalkmus/rpi_exporter
-git clone https://github.com/lukasmalkmus/rpi_exporter.git $GOPATH/src/github.com/lukasmalkmus/rpi_exporter
-cd $GOPATH/src/github.com/lukasmalkmus/rpi_exporter
-go build
-# or promu build
+git clone https://github.com/lukasmalkmus/rpi_exporter.git
+cd rpi_exporter
+make build
 ```
 
 #### Using the application
@@ -65,23 +62,21 @@ Feel free to submit PRs or to fill Issues. Every kind of help is appreciated.
 
 ### License
 
-© Lukas Malkmus, 2018
+© Lukas Malkmus, 2019
 
 Distributed under Apache License (`Apache License, Version 2.0`).
 
 See [LICENSE](LICENSE) for more information.
 
 <!-- Links -->
-[dep]: https://github.com/golang/dep
+[go mod]: https://golang.org/cmd/go/#hdr-Module_maintenance
 [Lukas Malkmus]: https://github.com/lukasmalkmus
 [Carlos Eduardo]: https://github.com/carlosedp
 [DockerHub]: https://hub.docker.com/r/carlosedp/arm_exporter
 
 <!-- Badges -->
-[travis]: https://travis-ci.org/lukasmalkmus/rpi_exporter
-[travis_badge]: https://travis-ci.org/lukasmalkmus/rpi_exporter.svg
-[coverage]: https://coveralls.io/github/lukasmalkmus/rpi_exporter?branch=master
-[coverage_badge]: https://coveralls.io/repos/github/lukasmalkmus/rpi_exporter/badge.svg?branch=master
+[travis]: https://travis-ci.com/lukasmalkmus/rpi_exporter
+[travis_badge]: https://travis-ci.com/lukasmalkmus/rpi_exporter.svg
 [report]: https://goreportcard.com/report/github.com/lukasmalkmus/rpi_exporter
 [report_badge]: https://goreportcard.com/badge/github.com/lukasmalkmus/rpi_exporter
 [release]: https://github.com/lukasmalkmus/rpi_exporter/releases
