@@ -37,7 +37,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	log.Debugln("collect query:", filters)
 
 	// Create a new Raspberry Pi collector.
-	nc, err := collector.New(filters...)
+	rpiColl, err := collector.New(filters...)
 	if err != nil {
 		log.Warnln("Couldn't create", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -48,29 +48,28 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	// Create a new prometheus registry and register the Raspberry Pi collector
 	// on it.
 	reg := prometheus.NewRegistry()
-	if err := reg.Register(nc); err != nil {
-		log.Errorln("Couldn't register collector:", err)
+	if err := reg.Register(rpiColl); err != nil {
+		log.Error("Couldn't register collector:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Couldn't register collector: %s", err)))
 		return
 	}
+	reg.MustRegister(version.NewCollector("rpi_exporter"))
 
 	// Delegate http serving to Prometheus client library, which will call
 	// collector.Collect.
-	h := promhttp.InstrumentMetricHandler(reg, promhttp.HandlerFor(reg,
-		promhttp.HandlerOpts{
-			ErrorLog:      log.NewErrorLogger(),
-			ErrorHandling: promhttp.HTTPErrorOnError,
-		}),
-	)
+	h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
+		ErrorLog:      log.NewErrorLogger(),
+		ErrorHandling: promhttp.HTTPErrorOnError,
+	})
 	h.ServeHTTP(w, r)
 }
 
 func main() {
 	// Command line flags.
 	var (
-		listenAddress = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9243").String()
-		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
+		webListenAddress = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9243").String()
+		webMetricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 	)
 
 	// Setup the command line flags and commands.
@@ -80,26 +79,26 @@ func main() {
 	kingpin.Parse()
 
 	// Print build context and version.
-	log.Infoln("Starting rpi_exporter", version.Info())
-	log.Infoln("Build context", version.BuildContext())
+	log.Info("Starting rpi_exporter", version.Info())
+	log.Info("Build context", version.BuildContext())
 
 	// Setup router and handlers.
-	r := http.NewServeMux()
-	r.HandleFunc(*metricsPath, handler)
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc(*webMetricsPath, handler)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
 			<head><title>Raspberry Pi Exporter</title></head>
 			<body>
 			<h1>Raspberry Pi Exporter</h1>
-			<p><a href="` + *metricsPath + `">Metrics</a></p>
+			<p><a href="` + *webMetricsPath + `">Metrics</a></p>
 			</body>
 			</html>`))
 	})
 
 	// Setup webserver.
 	srv := &http.Server{
-		Addr:         *listenAddress,
-		Handler:      r,
+		Addr:         *webListenAddress,
+		Handler:      mux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -113,11 +112,13 @@ func main() {
 	defer signal.Stop(term)
 
 	// Run webserver in a separate go-routine.
-	log.Infoln("Listening on", *listenAddress)
+	log.Info("Listening on", *webListenAddress)
 	webErr := make(chan error)
 	defer close(webErr)
 	go func() {
-		webErr <- srv.ListenAndServe()
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			webErr <- err
+		}
 	}()
 
 	// Wait for a termination signal and shut down gracefully, but wait no
@@ -132,10 +133,10 @@ func main() {
 		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Errorln(err)
+			log.Error(err)
 		}
 	case err := <-webErr:
-		log.Errorln("Error starting web server, exiting gracefully:", err)
+		log.Error("Error starting web server, exiting gracefully:", err)
 	}
-	log.Infoln("See you next time!")
+	log.Info("See you next time!")
 }
