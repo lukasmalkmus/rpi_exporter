@@ -55,7 +55,7 @@ func (c *cpuCollector) Update(ch chan<- prometheus.Metric) error {
 	ch <- prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, cpuSubsystem, "temperature_celsius"),
-			"CPU temperature in degrees celsius",
+			"CPU temperature in degrees celsius (°C).",
 			nil, nil,
 		),
 		prometheus.GaugeValue, temp,
