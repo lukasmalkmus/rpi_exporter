@@ -21,6 +21,7 @@ tarball:
     files:
         - LICENSE
         - NOTICE
+        - systemd/rpi_exporter.service
 crossbuild:
     platforms:
         - linux/arm
