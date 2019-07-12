@@ -1,0 +1,13 @@
+[Unit]
+Description=Prometheus exporter for RPi temperature metrics
+Documentation=https://github.com/lukasmalkmus/rpi_exporter
+
+[Service]
+Restart=always
+User=prometheus
+ExecStart=/usr/local/bin/rpi_exporter
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target
