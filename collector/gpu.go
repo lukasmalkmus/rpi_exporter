@@ -14,45 +14,49 @@
 package collector
 
 import (
-	"bytes"
-	"io/ioutil"
+	"os/exec"
 	"strconv"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const cpuSubsystem = "cpu"
+const gpuSubsystem = "gpu"
 
-type cpuCollector struct{}
+type gpuCollector struct{}
 
 func init() {
-	registerCollector("cpu", defaultEnabled, NewCPUCollector)
+	registerCollector("gpu", defaultEnabled, NewGPUCollector)
 }
 
-// NewCPUCollector returns a new Collector exposing CPU temperature metrics.
-func NewCPUCollector() (Collector, error) {
-	return &cpuCollector{}, nil
+// NewGPUCollector returns a new Collector exposing GPU temperature metrics.
+func NewGPUCollector() (Collector, error) {
+	return &gpuCollector{}, nil
 }
 
 // Update implements the Collector interface.
-func (c *cpuCollector) Update(ch chan<- prometheus.Metric) error {
-	// Get temperature string from /sys/class/thermal/thermal_zone*/temp and
-	// convert it to float64 value.
-	b, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
+func (c *gpuCollector) Update(ch chan<- prometheus.Metric) error {
+	// Get temperature string by executing /opt/vc/bin/vcgencmd measure_temp
+	// and convert it to float64 value.
+	cmd := exec.Command("/opt/vc/bin/vcgencmd", "measure_temp")
+	stdout, err := cmd.Output()
 	if err != nil {
 		return err
 	}
-	temp, err := strconv.ParseFloat(string(bytes.TrimSpace(b)), 64)
+
+	// temp=55.3'C => 55.3
+	tempStr := strings.TrimPrefix(string(stdout), "temp=")
+	tempStr = strings.TrimSuffix(tempStr, "'C\n")
+	temp, err := strconv.ParseFloat(tempStr, 64)
 	if err != nil {
 		return err
 	}
-	temp = temp / 1000
 
 	// Export the metric.
 	ch <- prometheus.MustNewConstMetric(
 		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, cpuSubsystem, "temperature_celsius"),
-			"CPU temperature in degrees celsius (°C).",
+			prometheus.BuildFQName(namespace, gpuSubsystem, "temperature_celsius"),
+			"GPU temperature in degrees celsius (°C).",
 			nil, nil,
 		),
 		prometheus.GaugeValue, temp,
