@@ -4,6 +4,7 @@ Documentation=https://github.com/lukasmalkmus/rpi_exporter
 
 [Service]
 Restart=always
+# prometheus user should be part of "video" group to get GPU temperature
 User=prometheus
 ExecStart=/usr/local/bin/rpi_exporter
 TimeoutStopSec=20s
