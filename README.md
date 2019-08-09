@@ -29,6 +29,9 @@ temperature and exports it via HTTP for Prometheus consumption.
 The easiest way to run the *rpi_exporter* is by grabbing the latest binary from
 the [release page][release].
 
+Do not forget to run *rpi_exporter* using user in `video` group to get GPU
+details from RPi.
+
 ##### Building from source
 
 This project uses [go mod] for vendoring.
