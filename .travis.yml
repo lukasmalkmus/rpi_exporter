@@ -1,7 +1,7 @@
 language: go
 
 go:
-  - 1.12.x
+  - "1.13"
 
 script:
   - make check_license style unused test lint
