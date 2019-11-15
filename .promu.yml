@@ -1,22 +1,18 @@
 go:
-    version: 1.12
+    version: 1.13
 repository:
     path: github.com/lukasmalkmus/rpi_exporter
 build:
-    flags: -mod=vendor -buildmode=exe -tags=netgo -installsuffix=cgo -a
+    flags: -mod=vendor -buildmode=exe -tags=netgo -installsuffix=cgo -trimpath
     ldflags: |
         -s
         -w
-        -extldflags="-static"
-        -X={{repoPath}}/vendor/github.com/prometheus/common/version.Version={{.Version}}
-        -X={{repoPath}}/vendor/github.com/prometheus/common/version.Revision={{.Revision}}
-        -X={{repoPath}}/vendor/github.com/prometheus/common/version.Branch={{.Branch}}
-        -X={{repoPath}}/vendor/github.com/prometheus/common/version.BuildUser={{user}}@{{host}}
-        -X={{repoPath}}/vendor/github.com/prometheus/common/version.BuildDate={{date "20060102-15:04:05"}}
-    gcflags:
-        -trimpath=$(GOPATH)/src
-    asmflags:
-        -trimpath=$(GOPATH)/src
+        -extldflags "-fno-PIC -static"
+        -X=github.com/prometheus/common/version.Version={{.Version}}
+        -X=github.com/prometheus/common/version.Revision={{.Revision}}
+        -X=github.com/prometheus/common/version.Branch={{.Branch}}
+        -X=github.com/prometheus/common/version.BuildUser={{user}}@{{host}}
+        -X=github.com/prometheus/common/version.BuildDate={{date "20060102-15:04:05"}}
 tarball:
     files:
         - LICENSE
