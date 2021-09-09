@@ -21,6 +21,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"io"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
