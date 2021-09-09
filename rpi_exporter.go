@@ -65,11 +65,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	h.ServeHTTP(w, r)
 }
 
+func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+    // A very simple health check.
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    io.WriteString(w, `{"alive": true}`)
+}
+
 func main() {
 	// Command line flags.
 	var (
 		webListenAddress = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9243").String()
 		webMetricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
+		webHealthPath    = kingpin.Flag("web.healthcheck-path", "Path under which the exporter expose its status.").Default("/health").String()
 	)
 
 	// Setup the command line flags and commands.
@@ -85,12 +93,14 @@ func main() {
 	// Setup router and handlers.
 	mux := http.NewServeMux()
 	mux.HandleFunc(*webMetricsPath, handler)
+	mux.HandleFunc(*webHealthPath, HealthCheckHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
 			<head><title>Raspberry Pi Exporter</title></head>
 			<body>
 			<h1>Raspberry Pi Exporter</h1>
 			<p><a href="` + *webMetricsPath + `">Metrics</a></p>
+			<p><a href="` + *webHealthPath + `">Exporter health</a></p>
 			</body>
 			</html>`))
 	})
