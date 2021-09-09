@@ -123,7 +123,7 @@ func main() {
 	defer signal.Stop(term)
 
 	// Run webserver in a separate go-routine.
-	log.Info("Listening on", *webListenAddress)
+	log.Info("Listening on ", *webListenAddress)
 	webErr := make(chan error)
 	defer close(webErr)
 	go func() {
