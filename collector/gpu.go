@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 const gpuSubsystem = "gpu"
