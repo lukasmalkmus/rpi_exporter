@@ -23,7 +23,15 @@ import (
 
 const gpuSubsystem = "gpu"
 
-type gpuCollector struct{}
+var (
+	// /opt/vc/bin/vcgencmd for RaspiOS 32bit
+	// /usr/bin/vcgencmd
+	vcgencmdPath = kingpin.Flag("vcgencmd.path", "Path where vcgencmd is installed.").Default("/opt/vc/bin/").String()
+)
+
+type gpuCollector struct {
+	vcgencmdPath string
+}
 
 func init() {
 	registerCollector("gpu", defaultEnabled, NewGPUCollector)
@@ -31,14 +39,15 @@ func init() {
 
 // NewGPUCollector returns a new Collector exposing GPU temperature metrics.
 func NewGPUCollector() (Collector, error) {
-	return &gpuCollector{}, nil
+	gc := &gpuCollector{*vcgencmdPath}
+	return gc, nil
 }
 
 // Update implements the Collector interface.
 func (c *gpuCollector) Update(ch chan<- prometheus.Metric) error {
 	// Get temperature string by executing /opt/vc/bin/vcgencmd measure_temp
 	// and convert it to float64 value.
-	cmd := exec.Command("/opt/vc/bin/vcgencmd", "measure_temp")
+	cmd := exec.Command(c.vcgencmdPath+"vcgencmd", "measure_temp")
 	stdout, err := cmd.Output()
 	if err != nil {
 		return err
