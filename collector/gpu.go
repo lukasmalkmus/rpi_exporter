@@ -26,7 +26,7 @@ const gpuSubsystem = "gpu"
 
 var (
 	// /opt/vc/bin/vcgencmd for RaspiOS 32bit
-	// /usr/bin/vcgencmd for RaspiOS 64bit 
+	// /usr/bin/vcgencmd for RaspiOS 64bit
 	vcgencmd = kingpin.Flag("vcgencmd", "vcgencmd including path.").Default("/opt/vc/bin/vcgencmd").String()
 )
 
