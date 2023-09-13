@@ -31,7 +31,8 @@ var (
 )
 
 type gpuCollector struct {
-	vcgencmd string
+	vcgencmd	string
+	gpuTempCelsius	*prometheus.Desc
 }
 
 func init() {
@@ -40,7 +41,14 @@ func init() {
 
 // NewGPUCollector returns a new Collector exposing GPU temperature metrics.
 func NewGPUCollector() (Collector, error) {
-	gc := &gpuCollector{*vcgencmd}
+	gc := &gpuCollector{
+		vcgencmd: *vcgencmd,
+		gpuTempCelsius: prometheus.NewDesc(
+                        prometheus.BuildFQName(namespace, gpuSubsystem, "temperature_celsius"),
+                        "GPU temperature in degrees celsius (°C).",
+                        nil, nil,
+                ),
+	}
 	return gc, nil
 }
 
@@ -64,11 +72,7 @@ func (c *gpuCollector) Update(ch chan<- prometheus.Metric) error {
 
 	// Export the metric.
 	ch <- prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, gpuSubsystem, "temperature_celsius"),
-			"GPU temperature in degrees celsius (°C).",
-			nil, nil,
-		),
+		c.gpuTempCelsius,
 		prometheus.GaugeValue, temp,
 	)
 	return nil
