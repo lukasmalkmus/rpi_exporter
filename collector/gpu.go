@@ -24,6 +24,12 @@ import (
 
 const gpuSubsystem = "gpu"
 
+// The vcgencmd components to be considered part of the gpu.
+// The clock frequency of these will be exported.
+func getGpuComponents() []string {
+	return []string{"core", "h264", "v3d"}
+}
+
 var (
 	// /opt/vc/bin/vcgencmd for RaspiOS 32bit
 	// /usr/bin/vcgencmd for RaspiOS 64bit
@@ -33,6 +39,7 @@ var (
 type gpuCollector struct {
 	vcgencmd	string
 	gpuTempCelsius	*prometheus.Desc
+	gpuFreqHertz	*prometheus.Desc
 }
 
 func init() {
@@ -48,6 +55,11 @@ func NewGPUCollector() (Collector, error) {
                         "GPU temperature in degrees celsius (°C).",
                         nil, nil,
                 ),
+		gpuFreqHertz: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, gpuSubsystem, "frequency_hertz"),
+			"GPU frequency in hertz (Hz).",
+			[]string{"component"}, nil,
+		),
 	}
 	return gc, nil
 }
@@ -63,7 +75,11 @@ func (c *gpuCollector) Update(ch chan<- prometheus.Metric) error {
 	}
 
 	// temp=55.3'C => 55.3
-	tempStr := strings.TrimPrefix(string(stdout), "temp=")
+	tempStr := string(stdout)
+	idx := strings.IndexByte(tempStr, '=')
+	if idx != -1 {
+		tempStr = tempStr[idx + 1:]
+	}
 	tempStr = strings.TrimSuffix(tempStr, "'C\n")
 	temp, err := strconv.ParseFloat(tempStr, 64)
 	if err != nil {
@@ -75,5 +91,36 @@ func (c *gpuCollector) Update(ch chan<- prometheus.Metric) error {
 		c.gpuTempCelsius,
 		prometheus.GaugeValue, temp,
 	)
+
+	for _, component := range getGpuComponents() {
+		// Get frequency string by executing vcgencmd and
+		// convert it to float64 value.
+		cmd = exec.Command(c.vcgencmd, "measure_clock", component)
+		stdout, err := cmd.Output()
+		if err != nil {
+			return err
+		}
+
+		// frequency(1)=400000000 => 400000000
+		freqStr := string(stdout)
+		idx = strings.IndexByte(freqStr, '=')
+		if idx != -1 {
+			freqStr = freqStr[idx + 1:]
+		}
+		freqStr = strings.TrimSuffix(freqStr, "\n")
+		freq, err := strconv.ParseFloat(freqStr, 64)
+		if err != nil {
+			return err
+		}
+
+		// Export the metric.
+		ch <- prometheus.MustNewConstMetric(
+			c.gpuFreqHertz,
+			prometheus.GaugeValue,
+			freq,
+			component,
+		)
+	}
+
 	return nil
 }
