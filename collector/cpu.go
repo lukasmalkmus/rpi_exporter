@@ -23,7 +23,9 @@ import (
 
 const cpuSubsystem = "cpu"
 
-type cpuCollector struct{}
+type cpuCollector struct{
+	cpuTempCelsius	*prometheus.Desc
+}
 
 func init() {
 	registerCollector("cpu", defaultEnabled, NewCPUCollector)
@@ -31,7 +33,14 @@ func init() {
 
 // NewCPUCollector returns a new Collector exposing CPU temperature metrics.
 func NewCPUCollector() (Collector, error) {
-	return &cpuCollector{}, nil
+	cc := &cpuCollector{
+		cpuTempCelsius: prometheus.NewDesc(
+                        prometheus.BuildFQName(namespace, cpuSubsystem, "temperature_celsius"),
+                        "CPU temperature in degrees celsius (°C).",
+                        nil, nil,
+                ),
+	}
+	return cc, nil
 }
 
 // Update implements the Collector interface.
@@ -50,11 +59,7 @@ func (c *cpuCollector) Update(ch chan<- prometheus.Metric) error {
 
 	// Export the metric.
 	ch <- prometheus.MustNewConstMetric(
-		prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, cpuSubsystem, "temperature_celsius"),
-			"CPU temperature in degrees celsius (°C).",
-			nil, nil,
-		),
+		c.cpuTempCelsius,
 		prometheus.GaugeValue, temp,
 	)
 	return nil
