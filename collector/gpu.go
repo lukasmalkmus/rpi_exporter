@@ -37,9 +37,9 @@ var (
 )
 
 type gpuCollector struct {
-	vcgencmd	string
-	gpuTempCelsius	*prometheus.Desc
-	gpuFreqHertz	*prometheus.Desc
+	vcgencmd       string
+	gpuTempCelsius *prometheus.Desc
+	gpuFreqHertz   *prometheus.Desc
 }
 
 func init() {
@@ -51,10 +51,10 @@ func NewGPUCollector() (Collector, error) {
 	gc := &gpuCollector{
 		vcgencmd: *vcgencmd,
 		gpuTempCelsius: prometheus.NewDesc(
-                        prometheus.BuildFQName(namespace, gpuSubsystem, "temperature_celsius"),
-                        "GPU temperature in degrees celsius (°C).",
-                        nil, nil,
-                ),
+			prometheus.BuildFQName(namespace, gpuSubsystem, "temperature_celsius"),
+			"GPU temperature in degrees celsius (°C).",
+			nil, nil,
+		),
 		gpuFreqHertz: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, gpuSubsystem, "frequency_hertz"),
 			"GPU frequency in hertz (Hz).",
@@ -78,7 +78,7 @@ func (c *gpuCollector) Update(ch chan<- prometheus.Metric) error {
 	tempStr := string(stdout)
 	idx := strings.IndexByte(tempStr, '=')
 	if idx != -1 {
-		tempStr = tempStr[idx + 1:]
+		tempStr = tempStr[idx+1:]
 	}
 	tempStr = strings.TrimSuffix(tempStr, "'C\n")
 	temp, err := strconv.ParseFloat(tempStr, 64)
@@ -105,7 +105,7 @@ func (c *gpuCollector) Update(ch chan<- prometheus.Metric) error {
 		freqStr := string(stdout)
 		idx = strings.IndexByte(freqStr, '=')
 		if idx != -1 {
-			freqStr = freqStr[idx + 1:]
+			freqStr = freqStr[idx+1:]
 		}
 		freqStr = strings.TrimSuffix(freqStr, "\n")
 		freq, err := strconv.ParseFloat(freqStr, 64)
