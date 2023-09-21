@@ -20,6 +20,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,13 +35,18 @@ import (
 )
 
 // A wrapper around http.Handler to handle filtering.
-// creates a new http.Handler for every filtered request, for now.
+// Caches already used filter combinations.
+// Create a new handler using newHandler().
 type handler struct {
 	unfilteredHandler http.Handler
+	// There are only three collectors in this program, so that's seven combinations at most.
+	filteredHandlers map[string]http.Handler
 }
 
 func newHandler() *handler {
-	h := &handler{}
+	h := &handler{
+		filteredHandlers: make(map[string]http.Handler),
+	}
 
 	unfilteredHandler, err := h.filteredHandler()
 	if err != nil {
@@ -53,8 +60,11 @@ func newHandler() *handler {
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Get the filters from the query.
 	filters := r.URL.Query()["collect[]"]
+	// Sort filters to allow caching of filtered handlers.
+	sort.Strings(filters)
 	log.Debugln("collect query:", filters)
 
+	// Use the unfiltered handler if no filters were given.
 	if len(filters) == 0 {
 		h.unfilteredHandler.ServeHTTP(w, r)
 		return
@@ -73,6 +83,13 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) filteredHandler(filters ...string) (http.Handler, error) {
+	// Check if there is a handler for this combination of filters already.
+	filtersStr := strings.Join(filters, ",")
+	handler := h.filteredHandlers[filtersStr]
+	if handler != nil {
+		return handler, nil
+	}
+
 	// Create a new Raspberry Pi collector.
 	rpiColl, err := collector.New(filters...)
 	if err != nil {
@@ -89,10 +106,12 @@ func (h *handler) filteredHandler(filters ...string) (http.Handler, error) {
 
 	// Delegate http serving to Prometheus client library, which will call
 	// collector.Collect.
-	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
+	handler = promhttp.HandlerFor(reg, promhttp.HandlerOpts{
 		ErrorLog:      log.NewErrorLogger(),
 		ErrorHandling: promhttp.HTTPErrorOnError,
 	})
+
+	h.filteredHandlers[filtersStr] = handler
 	return handler, nil
 }
 
