@@ -24,9 +24,9 @@ import (
 
 const cpuSubsystem = "cpu"
 
-type cpuCollector struct{
-	cpuTempCelsius	*prometheus.Desc
-	cpuFreqHertz	*prometheus.Desc
+type cpuCollector struct {
+	cpuTempCelsius *prometheus.Desc
+	cpuFreqHertz   *prometheus.Desc
 }
 
 func init() {
@@ -37,10 +37,10 @@ func init() {
 func NewCPUCollector() (Collector, error) {
 	cc := &cpuCollector{
 		cpuTempCelsius: prometheus.NewDesc(
-                        prometheus.BuildFQName(namespace, cpuSubsystem, "temperature_celsius"),
-                        "CPU temperature in degrees celsius (°C).",
-                        nil, nil,
-                ),
+			prometheus.BuildFQName(namespace, cpuSubsystem, "temperature_celsius"),
+			"CPU temperature in degrees celsius (°C).",
+			nil, nil,
+		),
 		cpuFreqHertz: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, cpuSubsystem, "frequency_hertz"),
 			"CPU Frequency in hertz (Hz).",
