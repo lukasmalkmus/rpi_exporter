@@ -32,38 +32,68 @@ import (
 	"github.com/lukasmalkmus/rpi_exporter/collector"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
+// A wrapper around http.Handler to handle filtering.
+// creates a new http.Handler for every filtered request, for now.
+type handler struct {
+	unfilteredHandler http.Handler
+}
+
+func newHandler() *handler {
+	h := &handler{}
+
+	unfilteredHandler, err := h.filteredHandler()
+	if err != nil {
+		panic(fmt.Sprintf("Couldn't create metrics handler: %s", err))
+	}
+
+	h.unfilteredHandler = unfilteredHandler
+	return h
+}
+
+func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Get the filters from the query.
 	filters := r.URL.Query()["collect[]"]
 	log.Debugln("collect query:", filters)
 
+	if len(filters) == 0 {
+		h.unfilteredHandler.ServeHTTP(w, r)
+		return
+	}
+
+	// Create a filtered handler.
+	filteredHandler, err := h.filteredHandler(filters...)
+	if err != nil {
+		log.Errorln("Couldn't create filtered handler:", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("Couldn't create filtered metrics handler: %s", err)))
+		return
+	}
+
+	filteredHandler.ServeHTTP(w, r)
+}
+
+func (h *handler) filteredHandler(filters ...string) (http.Handler, error) {
 	// Create a new Raspberry Pi collector.
 	rpiColl, err := collector.New(filters...)
 	if err != nil {
-		log.Warnln("Couldn't create", err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("Couldn't create %s", err)))
-		return
+		return nil, fmt.Errorf("Couldn't create %s", err)
 	}
 
 	// Create a new prometheus registry and register the Raspberry Pi collector
 	// on it.
 	reg := prometheus.NewRegistry()
 	if err := reg.Register(rpiColl); err != nil {
-		log.Error("Couldn't register collector:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Couldn't register collector: %s", err)))
-		return
+		return nil, fmt.Errorf("Couldn't register collector: %s", err)
 	}
 	reg.MustRegister(version.NewCollector("rpi_exporter"))
 
 	// Delegate http serving to Prometheus client library, which will call
 	// collector.Collect.
-	h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
+	handler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{
 		ErrorLog:      log.NewErrorLogger(),
 		ErrorHandling: promhttp.HTTPErrorOnError,
 	})
-	h.ServeHTTP(w, r)
+	return handler, nil
 }
 
 func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +123,7 @@ func main() {
 
 	// Setup router and handlers.
 	mux := http.NewServeMux()
-	mux.HandleFunc(*webMetricsPath, handler)
+	mux.Handle(*webMetricsPath, newHandler())
 	mux.HandleFunc(*webHealthPath, HealthCheckHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
