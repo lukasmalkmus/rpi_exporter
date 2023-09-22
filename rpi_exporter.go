@@ -48,6 +48,7 @@ func newHandler() *handler {
 		filteredHandlers: make(map[string]http.Handler),
 	}
 
+	// Create the unfiltered default handler.
 	unfilteredHandler, err := h.filteredHandler()
 	if err != nil {
 		panic(fmt.Sprintf("Couldn't create metrics handler: %s", err))
@@ -83,6 +84,11 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) filteredHandler(filters ...string) (http.Handler, error) {
+	// Do not recreate unfiltered handler if it already exists.
+	if len(filters) == 0 && h.unfilteredHandler != nil {
+		return h.unfilteredHandler, nil
+	}
+
 	// Check if there is a handler for this combination of filters already.
 	filtersStr := strings.Join(filters, ",")
 	handler := h.filteredHandlers[filtersStr]
@@ -111,7 +117,10 @@ func (h *handler) filteredHandler(filters ...string) (http.Handler, error) {
 		ErrorHandling: promhttp.HTTPErrorOnError,
 	})
 
-	h.filteredHandlers[filtersStr] = handler
+	// Store handler in cache if it isn't unfiltered.
+	if len(filters) > 0 {
+		h.filteredHandlers[filtersStr] = handler
+	}
 	return handler, nil
 }
 
