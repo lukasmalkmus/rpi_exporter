@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	promcollectors "github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
@@ -40,12 +41,24 @@ import (
 type handler struct {
 	unfilteredHandler http.Handler
 	// There are only three collectors in this program, so that's seven combinations at most.
-	filteredHandlers map[string]http.Handler
+	filteredHandlers        map[string]http.Handler
+	exporterMetricsRegistry *prometheus.Registry
+	includeExporterMetrics  bool
 }
 
-func newHandler() *handler {
+func newHandler(includeExporterMetrics bool) *handler {
 	h := &handler{
-		filteredHandlers: make(map[string]http.Handler),
+		filteredHandlers:       make(map[string]http.Handler),
+		includeExporterMetrics: includeExporterMetrics,
+	}
+
+	// Add default collectors, if they aren't disabled.
+	if h.includeExporterMetrics {
+		h.exporterMetricsRegistry = prometheus.NewRegistry()
+		h.exporterMetricsRegistry.MustRegister(
+			promcollectors.NewProcessCollector(promcollectors.ProcessCollectorOpts{}),
+			promcollectors.NewGoCollector(),
+		)
 	}
 
 	// Create the unfiltered default handler.
@@ -112,10 +125,24 @@ func (h *handler) filteredHandler(filters ...string) (http.Handler, error) {
 
 	// Delegate http serving to Prometheus client library, which will call
 	// collector.Collect.
-	handler = promhttp.HandlerFor(reg, promhttp.HandlerOpts{
-		ErrorLog:      log.NewErrorLogger(),
-		ErrorHandling: promhttp.HTTPErrorOnError,
-	})
+	if h.includeExporterMetrics {
+		handler = promhttp.HandlerFor(
+			prometheus.Gatherers{h.exporterMetricsRegistry, reg},
+			promhttp.HandlerOpts{
+				ErrorLog:      log.NewErrorLogger(),
+				ErrorHandling: promhttp.HTTPErrorOnError,
+				Registry:      h.exporterMetricsRegistry,
+			})
+		handler = promhttp.InstrumentMetricHandler(
+			h.exporterMetricsRegistry, handler,
+		)
+	} else {
+		handler = promhttp.HandlerFor(reg,
+			promhttp.HandlerOpts{
+				ErrorLog:      log.NewErrorLogger(),
+				ErrorHandling: promhttp.HTTPErrorOnError,
+			})
+	}
 
 	// Store handler in cache if it isn't unfiltered.
 	if len(filters) > 0 {
@@ -134,9 +161,10 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	// Command line flags.
 	var (
-		webListenAddress = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9243").String()
-		webMetricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
-		webHealthPath    = kingpin.Flag("web.healthcheck-path", "Path under which the exporter expose its status.").Default("/health").String()
+		webListenAddress          = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9243").String()
+		webMetricsPath            = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
+		webHealthPath             = kingpin.Flag("web.healthcheck-path", "Path under which the exporter exposes its status.").Default("/health").String()
+		webDisableExporterMetrics = kingpin.Flag("web.disable-exporter-metrics", "Exclude metrics about the exporter itself (promhttp_*, process_*, go_*).").Bool()
 	)
 
 	// Setup the command line flags and commands.
@@ -151,7 +179,7 @@ func main() {
 
 	// Setup router and handlers.
 	mux := http.NewServeMux()
-	mux.Handle(*webMetricsPath, newHandler())
+	mux.Handle(*webMetricsPath, newHandler(!*webDisableExporterMetrics))
 	mux.HandleFunc(*webHealthPath, HealthCheckHandler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
